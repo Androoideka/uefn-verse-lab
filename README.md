@@ -6,7 +6,10 @@ Based on the popular children's game played with a set of cards. Cards are repre
 
 N is configurable, so is the number of cards per row and column. Best to configure these numbers within the UEFN editor. Game start is configured to wait for the player to press a button in the level by default.
 
-Notable tricks used to make this game work are:
-DynamicRace/RecursiveRace in ConcurrencyExtensions (rng_structures.verse) - Allows you to use a variable amount of expressions in a Verse race statement
-ArrangeGrid in GUIExtensions (gui_extensions.verse) - Creates a relatively responsive UI by placing vertical stack boxes in a horizontal stack box to occupy most of the screen with rows and columns of buttons
-IsAllEqual in Extensions (extensions.verse) - Uses the higher-level Reduce function to check if all members of the array are equal to each other, Reduce is an analog of Fold in Haskell
+### Notable tricks used to make this game work are:
+
+- DynamicRace/RecursiveRace in ConcurrencyExtensions (rng_structures.verse) - Allows you to use a variable amount of expressions in a Verse race statement
+
+- ArrangeGrid in GUIExtensions (gui_extensions.verse) - Creates a relatively responsive UI by placing vertical stack boxes in a horizontal stack box to occupy most of the screen with rows and columns of buttons
+
+- IsAllEqual in Extensions (extensions.verse) - Uses the higher-level Reduce function to check if all members of the array are equal to each other, Reduce is an analog of Fold in Haskell
