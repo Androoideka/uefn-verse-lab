@@ -73,34 +73,44 @@ game_of_life_device := class(creative_device):
     BorderAsset:creative_prop_asset = DefaultCreativePropAsset
 
     @editable
-    Button:button_device = button_device{}
+    ResetButton:button_device = button_device{}
 
-    Reset:event() = event(){}
+    @editable
+    PauseSwitch:switch_device = switch_device{}
 
     var Hits:[]tuple(int, int) = array{}
-
-    OnPress(Agent:agent):void =
-        Reset.Signal()
 
     RegisterHit(Cell:tuple(int, int))<transacts>:void =
         if (not Contains(Hits, Cell)?):
             set Hits = Hits + array{Cell}
 
+    WaitForTurnOff()<suspends>:void =
+        if (PauseSwitch.GetCurrentState[]):
+            PauseSwitch.TurnedOffEvent.Await()
+
     Update(Board:board, Tiles:[]tile)<suspends>:void =
-        NewBoard := race:
+        MaybeBoard:?board := race:
             block:
                 Sleep(IterationDelay)
-                Board.Update(Hits)
+                option{Board.Update(Hits)}
             block:
-                Reset.Await()
-                board{XRange := Board.XRange, YRange := Board.YRange}
-        set Hits = array{}
-        for (Tile : Tiles):
-            if (Contains(NewBoard.LivingCells, Tile.Cell)?):
-                Tile.SetLiving()
-            else:
-                Tile.SetDead()
-        Update(NewBoard, Tiles)
+                ResetButton.InteractedWithEvent.Await()
+                option{board{XRange := Board.XRange, YRange := Board.YRange}}
+            block:
+                WaitForTurnOff()
+                false
+        NextBoard := if (NewBoard := MaybeBoard?):
+            set Hits = array{}
+            for (Tile : Tiles):
+                if (Contains(NewBoard.LivingCells, Tile.Cell)?):
+                    Tile.SetLiving()
+                else:
+                    Tile.SetDead()
+            NewBoard
+        else:
+            PauseSwitch.TurnedOnEvent.Await()
+            Board
+        Update(NextBoard, Tiles)
 
     GenerateTiles(XRange:tuple(int, int), YRange:tuple(int, int)):[]tile =
         for:
@@ -126,7 +136,6 @@ game_of_life_device := class(creative_device):
 
     OnBegin<override>()<suspends>:void =
         if (XRange := XSize.GetRangeWithCenter[], YRange := YSize.GetRangeWithCenter[]):
-            Button.InteractedWithEvent.Subscribe(OnPress)
             GenerateBorders(XRange, YRange)
             Tiles := GenerateTiles(XRange, YRange)
             Ticker := ticker{Monitorables := Tiles}

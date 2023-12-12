@@ -30,3 +30,18 @@ There is another limitation that the prop mover only registers collisions with o
 - raycaster.DeterminePosition (hearth.verse) - Uses a prop mover + prop to move an invisible prop from the player's viewpoint to the first obstacle in front of them, and uses the location of the prop once it hits the obstacle as the home spot
 
 - raycasting_pool (hearth.verse) - Creates a pool of objects that requires users to return the object before another user can take it. Uses a static block to initialize the pool with the objects set to available. I wanted to make this a class with a parametric type but unfortunately Verse does not currently support mutable members in parametric classes (seems to be planned for the future)
+
+## Conway's Game of Life
+An implementation of the popular cellular automaton using colours on floor tiles to depict whether cells are alive or dead. Players can bring new cells to life by shooting tiles with a gun. They can also pause the simulation to prepare more intricate patterns and reset the board to have a clean slate. Follows the standard rules where:
+
+- neighbours of a tile include tiles that are diagonally adjacent to it
+
+- cells that have 2 or 3 living neighbours stay alive
+
+- tiles that have 3 living neighbours become living cells
+
+You can try this out in Fortnite using the island code: 2798-0145-6557
+
+### Notable tricks used to make this mechanic work are:
+
+- Monitorable/Tile (game_of_life_device.verse) - Uses Sleep(0.0), which sleeps until the next tick, to check whether a tile has been shot
