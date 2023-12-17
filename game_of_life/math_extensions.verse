@@ -1,4 +1,7 @@
 MathExtensions<public> := module:
+    AddTuple<public>(Tuple1:tuple(int, int), Tuple2:tuple(int, int))<computes>:tuple(int, int) =
+        (Tuple1(0) + Tuple2(0), Tuple1(1) + Tuple2(1))
+
     #https://stackoverflow.com/questions/919612/mapping-two-integers-to-one-in-a-unique-and-deterministic-way
     Szudzik<public>(Pair:tuple(int, int))<computes>:int =
         A := if (Pair(0) >= 0):
@@ -26,3 +29,16 @@ MathExtensions<public> := module:
             Floor(Rational)
         else:
             Ceil(Rational)
+
+    LeavesBounds<public>(Coordinate:int, Range:tuple(int, int))<decides><computes>:void =
+        Coordinate >= Range(0) and Coordinate <= Range(1)
+
+    LeavesBounds<public>(Pair:tuple(int, int), XRange:tuple(int, int), YRange:tuple(int, int))<decides><computes>:void =
+        LeavesBounds[Pair(0), XRange] and LeavesBounds[Pair(1), YRange]
+
+    WrapToBounds<public>(Coordinate:int, Range:tuple(int, int))<decides><computes>:int =
+        Size := Range(1) - Range(0)
+        Mod[Coordinate, Size] + Range(0)
+
+    WrapToBounds<public>(Pair:tuple(int, int), XRange:tuple(int, int), YRange:tuple(int, int))<decides><computes>:tuple(int, int) =
+        (WrapToBounds[Pair(0), XRange], WrapToBounds[Pair(1), YRange])

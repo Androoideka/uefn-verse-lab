@@ -1,7 +1,7 @@
 using { MathExtensions }
 using { CollectionExtensions }
 
-GoL<public> := module:
+SimulationExtensions<public> := module:
     point<public> := tuple(int, int)
 
     (Point:point).GetNeighboursClassic()<computes>:[]point =
@@ -15,23 +15,10 @@ GoL<public> := module:
             AddTuple(Point, (0, 1))
             AddTuple(Point, (1, 1))
 
-    LeavesBounds(Coordinate:int, Range:point)<decides><computes>:void =
-        Coordinate >= Range(0) and Coordinate <= Range(1)
-
-    LeavesBounds(Point:point, XRange:point, YRange:point)<decides><computes>:void =
-        LeavesBounds[Point(0), XRange] and LeavesBounds[Point(1), YRange]
-
     GetNeighboursBounded(Point:point, XRange:point, YRange:point)<computes>:[]point =
         Neighbours := Point.GetNeighboursClassic()
         for (Neighbour : Neighbours, LeavesBounds[Neighbour, XRange, YRange]):
             Neighbour
-
-    WrapToBounds(Coordinate:int, Range:point)<decides><computes>:int =
-        Size := Range(1) - Range(0)
-        Mod[Coordinate, Size] + Range(0)
-
-    WrapToBounds(Point:point, XRange:point, YRange:point)<decides><computes>:tuple(int, int) =
-        (WrapToBounds[Point(0), XRange], WrapToBounds[Point(1), YRange])
 
     GetNeighboursWrapped(Point:point, XRange:point, YRange:point)<computes>:[]point =
         Neighbours := Point.GetNeighboursClassic()

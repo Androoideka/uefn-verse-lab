@@ -1,6 +1,6 @@
 using { CollectionExtensions }
 using { SpaceExtensions }
-using { GoL }
+using { SimulationExtensions }
 using { /Verse.org/Assets }
 using { /Fortnite.com/Devices }
 using { /Verse.org/Simulation }
@@ -8,48 +8,6 @@ using { /UnrealEngine.com/Temporary/Diagnostics }
 using { /UnrealEngine.com/Temporary/SpatialMath }
 
 # See https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse for how to create a verse device.
-
-monitorable := interface:
-    Update():void
-
-ticker := class:
-    Monitorables:[]monitorable
-
-    Monitor()<suspends>:void =
-        loop:
-            Sleep(0.0)
-            for (Monitorable : Monitorables):
-                Monitorable.Update()
-
-tile := class(monitorable):
-    Cell:tuple(int, int)
-
-    Model:creative_prop
-    Asset:creative_prop_asset
-
-    RegisterHit:type{_(:tuple(int, int))<transacts>:void}
-
-    var Prop<private>:creative_prop = creative_prop{}
-
-    Spawn<private>():void =
-        Result := SpawnProp(Asset, Model.GetTransform().Translation + FromXYZ(0.0, 0.0, 50.1), IdentityRotation())
-        if (set Prop = Result(0)?) {}
-
-    Instantiate():void =
-        SetDead()
-        Spawn()
-
-    Update<override>():void =
-        if (not Prop.IsValid[]):
-            RegisterHit(Cell)
-            SetLiving()
-            Spawn()
-
-    SetLiving():void =
-        Model.SetMaterial(LivingCell)
-
-    SetDead():void =
-        Model.SetMaterial(DeadCell)
 
 # A Verse-authored creative device that can be placed in a level
 game_of_life_device := class(creative_device):
@@ -84,10 +42,6 @@ game_of_life_device := class(creative_device):
         if (not Contains(Hits, Cell)?):
             set Hits = Hits + array{Cell}
 
-    WaitForTurnOff()<suspends>:void =
-        if (PauseSwitch.GetCurrentState[]):
-            PauseSwitch.TurnedOffEvent.Await()
-
     Update(Board:board, Tiles:[]tile)<suspends>:void =
         MaybeBoard:?board := race:
             block:
@@ -97,7 +51,8 @@ game_of_life_device := class(creative_device):
                 ResetButton.InteractedWithEvent.Await()
                 option{board{XRange := Board.XRange, YRange := Board.YRange}}
             block:
-                WaitForTurnOff()
+                if (PauseSwitch.GetCurrentState[]):
+                    PauseSwitch.TurnedOffEvent.Await()
                 false
         NextBoard := if (NewBoard := MaybeBoard?):
             set Hits = array{}
@@ -129,10 +84,11 @@ game_of_life_device := class(creative_device):
             transform{Translation := FromXYZ((XRange(1) + 1) * 100.0, 0.0, 900.0), Scale := FromXYZ(1.0, YSize * 1.0, 20.0)}
             transform{Translation := FromXYZ(0.0, (YRange(0) - 1) * 100.0, 900.0), Scale := FromXYZ(XSize * 1.0, 1.0, 20.0)}
             transform{Translation := FromXYZ(0.0, (YRange(1) + 1) * 100.0, 900.0), Scale := FromXYZ(XSize * 1.0, 1.0, 20.0)}
-        for (BorderTransform : BorderTransforms):
+        for:
+            BorderTransform : BorderTransforms
             Result := SpawnProp(BorderAsset, BorderTransform)
-            if (not Result(0)?):
-                Print("Fuck")
+            Border := Result(0)?
+        do {}
 
     OnBegin<override>()<suspends>:void =
         if (XRange := XSize.GetRangeWithCenter[], YRange := YSize.GetRangeWithCenter[]):
