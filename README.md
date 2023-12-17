@@ -40,7 +40,7 @@ An implementation of the popular cellular automaton using colours on floor tiles
 
 - tiles that have 3 living neighbours become living cells
 
-You can try this out in Fortnite using the island code: 2798-0145-6557
+You can try this out in Fortnite using the island code: 0014-8879-3797
 
 ### Notable tricks used to make this mechanic work are:
 
