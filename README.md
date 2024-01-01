@@ -6,6 +6,8 @@ Based on the popular children's game played with a set of cards. Cards are repre
 
 N is configurable, so is the number of cards per row and column. Best to configure these numbers within the UEFN editor. Game start is configured to wait for the player to press a button in the level by default.
 
+You can try this out in Fortnite using the island code: 1358-6245-4213
+
 ### Notable tricks used to make this game work are:
 
 - DynamicRace/RecursiveRace in ConcurrencyExtensions (rng_structures.verse) - Allows you to use a variable amount of expressions in a Verse race statement
