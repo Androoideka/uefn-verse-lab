@@ -1,28 +1,40 @@
+using { /Verse.org/Simulation }
 using { MovementExtensions }
 using { SimulationExtensions }
-using { FroggerStructures }
-using { /Fortnite.com/Characters }
-using { /Fortnite.com/Devices }
-using { /Verse.org/Simulation }
+using { ControlExtensions }
+using { BoardExtensions }
+using { PlayerExtensions }
+using { ObstacleExtensions }
+using { FroggerInitialization }
 using { /UnrealEngine.com/Temporary/SpatialMath }
-using { /UnrealEngine.com/Temporary/Diagnostics }
+using { /Fortnite.com/Devices }
 
 # See https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse for how to create a verse device.
 
 # A Verse-authored creative device that can be placed in a level
 frogger_device := class(creative_device):
-
-    @editable
-    Marker:creative_prop = creative_prop{}
+    AspectRatio:tuple(int, int) = (16, 9)
 
     @editable
     PlayerSpawners:[]player_spawner_device = array{}
 
     @editable
-    StreetAsset:creative_prop_asset = DefaultCreativePropAsset
+    Lanes:int = 16
 
     @editable
-    FrogAsset:creative_prop_asset = DefaultCreativePropAsset
+    StreetPropAsset:creative_prop_asset = DefaultCreativePropAsset
+
+    @editable
+    StreetOffset:vector3 = vector3{X := -1.0, Y := 1.0, Z := -1.0}
+
+    @editable
+    StreetSize:vector3 = vector3{X := 1024.0, Y := 1024.0, Z := 128.0}
+
+    @editable
+    FrogPropAsset:creative_prop_asset = DefaultCreativePropAsset
+
+    @editable
+    Camera:gameplay_camera_fixed_point_device = gameplay_camera_fixed_point_device {}
 
     @editable
     SignalReceiver:signal_remote_manager_device = signal_remote_manager_device{}
@@ -31,89 +43,69 @@ frogger_device := class(creative_device):
     MoveButtons:[]button_device = array{}
 
     @editable
-    Camera:gameplay_camera_fixed_point_device  = gameplay_camera_fixed_point_device {}
+    Phases:[]int = array{}
 
-    Offsets:vector3 = vector3{X := -500.0, Y := 500.0, Z := 16.0}
+    @editable
+    CarOffset:vector3 = vector3{X := 0.0, Y := 0.0, Z := 1.1}
+
+    @editable
+    CarSize:vector3 = vector3{X := 128.0, Y := 512.0, Z := 128.0}
+    
+    @editable
+    Cars:[]creative_prop = array{}
+
+    @editable
+    CarMovers:[]prop_mover_device = array{}
+
+    @editable
+    Marker:creative_prop = creative_prop{}
 
     Ticker:ticker = ticker{}
 
-    var Board:frogger_board = frogger_board{}
+    var MaybeState:?state = false
 
-    var ControllerPerPlayer : [player]?controller = map{}
+    var MaybeController:?key_controller = false
 
-    OnPrimarySignal(Agent:agent):void =
-        if:
-            Player := player[Agent]
-            Controller := ControllerPerPlayer[Player]?
-        then:
-            Controller.KeyPressed.Signal(direction.Left)
-
-    OnSecondarySignal(Agent:agent):void =
-        if:
-            Player := player[Agent]
-            Controller := ControllerPerPlayer[Player]?
-        then:
-            Controller.KeyPressed.Signal(direction.Right)
-
-    OnInteract(Agent:agent):void =
-        if:
-            Player := player[Agent]
-            Controller := ControllerPerPlayer[Player]?
-        then:
-            Controller.KeyPressed.Signal(direction.Up)
-
-    OnCrouch(Payload:tuple(fort_character, logic)):void =
-        if:
-            Player := player[Payload(0).GetAgent[]]
-            Controller := ControllerPerPlayer[Player]?
-        then:
-            Controller.KeyPressed.Signal(direction.Down)
-
-    OnPlayerSpawn(Agent:agent):void =
-        if:
-            Player := player[Agent]
-            Character := Player.GetFortCharacter[]
-            Controller := controller{Board := Board, Asset := FrogAsset, Player := Player}
-            set ControllerPerPlayer[Player] = option{Controller}
-        then:
-            Ticker.AddMonitorable(Controller)
-            Character.CrouchedEvent().Subscribe(OnCrouch)
-            spawn{Controller.Start()}
-
-    CreateTiles()<transacts>:[][]frogger_tile =
-        MarkerTranslation := Marker.GetTransform().Translation
-        for (X := 0..15):
-            for:
-                Y := 0..8
-                Translation := MarkerTranslation + Offsets * vector3{X := Y * -2.05, Y := X * 2.05, Z := 8.0}
-                Rotation := IdentityRotation().ApplyLocalRotationZ(DegreesToRadians(90.0))
-                Result := SpawnProp(StreetAsset, Translation, Rotation)
-                Prop := Result(0)?
-            do:
-                frogger_tile:
-                    IsStart := logic{Y = 0}
-                    IsEnd := logic{Y = 8}
-                    Offsets := Offsets
-                    Prop := Prop
+    GetDimensional(Car:creative_prop):dimensional =
+        dimensional:
+            Offset := CarOffset
+            Size := CarSize
+            Facing := axis.PY
+            Object := Car
 
     RepositionCamera():void =
-        XCenter := 9 * Offsets.Y - 1000.0
-        YCenter := 16 * Offsets.Y
-        Size := 16 * Offsets.Y * 2.05
+        XCenter := 9 * StreetOffset.Y - 1000.0
+        YCenter := 16 * StreetOffset.Y
+        Size := 16 * StreetOffset.Y * 2.05
         FieldOfView := 120.0
         ViewDistance := Size / (2 * Tan(DegreesToRadians(FieldOfView / 2.0)))
         Translation := Marker.GetTransform().Translation + vector3{X := XCenter, Y := YCenter, Z := ViewDistance}
         Print("{Translation.X}, {Translation.Y}, {Translation.Z}")
         if (Camera.TeleportTo[Translation, Camera.GetTransform().Rotation]) {}
 
-    # Runs when the device is started in a running game
+    OnPlayerSpawn(Agent:agent):void =
+        if (Player := player[Agent], Controller := MaybeController?, State := MaybeState?):
+            Frog := CreateFrog(FrogPropAsset, Player, State)
+            Controller.Join(Frog)
+            Ticker.AddMonitorable(Frog)
+
     OnBegin<override>()<suspends>:void =
-        spawn{Ticker.Start()}
-        set Board = frogger_board{Tiles := CreateTiles()}
+        StreetAsset := asset:
+            Offset := StreetOffset
+            Size := StreetSize
+            Facing := axis.PY
+            PropAsset := StreetPropAsset
+        State := CreateFroggerState(Marker.GetTransform().Translation, Lanes, StreetAsset)
+        set MaybeState = option{State}
+        Controller := key_controller{Buttons := MoveButtons, SignalReceiver := SignalReceiver}
+        set MaybeController = option{Controller}
+        CarDimensionals := for (Car : Cars):
+            GetDimensional(Car)
+        Obstacles := CreateObstacles(State.Board, CarMovers, CarDimensionals, Phases)
+        spawn{Ticker.Run()}
+        spawn{State.Run()}
+        for (Obstacle : Obstacles):
+            spawn{Obstacle.Run()}
         RepositionCamera()
-        for (MoveButton : MoveButtons):
-            MoveButton.InteractedWithEvent.Subscribe(OnInteract)
-        SignalReceiver.PrimarySignalEvent.Subscribe(OnPrimarySignal)
-        SignalReceiver.SecondarySignalEvent.Subscribe(OnSecondarySignal)
         for (PlayerSpawner : PlayerSpawners):
             PlayerSpawner.SpawnedEvent.Subscribe(OnPlayerSpawn)
