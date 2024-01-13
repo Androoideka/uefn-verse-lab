@@ -67,7 +67,7 @@ frogger_device := class(creative_device):
     ScoreTracker:score_manager_device = score_manager_device{}
 
     @editable
-    Marker:creative_prop = creative_prop{}
+    Pivot:vector3 = vector3{}
 
     @editable
     EndGameDevice:end_game_device = end_game_device{}
@@ -98,7 +98,7 @@ frogger_device := class(creative_device):
                 Scale := vector3{X := 3.5, Y := 3.5, Z := 3.5}
                 Facing := axis.PY
                 PropAsset := FrogPropAsset
-            Frog := CreateFrog(FrogAsset, Billboard, vector3{X := -22100.0, Y := 24040.0, Z := 5886.272207}, Player, State)
+            Frog := CreateFrog(FrogAsset, Billboard, Camera.GetTransform().Translation, Player, State)
             Controller.Join(Frog)
             Ticker.AddMonitorable(Frog)
 
@@ -113,7 +113,7 @@ frogger_device := class(creative_device):
             ScoreAccolades := ScoreAccolades
             ScoreTracker := ScoreTracker
             EndGameDevice := EndGameDevice
-        State := CreateFroggerState(Marker.GetTransform().Translation, Lanes, StreetAsset, ProgressReporter)
+        State := CreateFroggerState(Pivot, Lanes, StreetAsset, ProgressReporter)
         set MaybeState = option{State}
         Controller := key_controller{Buttons := MoveButtons, SignalReceiver := SignalReceiver}
         set MaybeController = option{Controller}
@@ -131,6 +131,9 @@ frogger_device := class(creative_device):
             spawn{Obstacle.Run()}
         spawn{Ticker.Run()}
         spawn{State.Run()}
-        if (CameraPosition := RepositionCamera[Marker.GetTransform().Translation, State.Board, Camera]) {}
+        if (CameraPosition := RepositionCamera[State.Board, Camera])
+        {
+            Print("{CameraPosition.X} {CameraPosition.Y} {CameraPosition.Z}")
+        }
         for (PlayerSpawner : PlayerSpawners):
             PlayerSpawner.SpawnedEvent.Subscribe(OnPlayerSpawn)

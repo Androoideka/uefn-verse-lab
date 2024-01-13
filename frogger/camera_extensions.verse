@@ -3,7 +3,7 @@ using { /Fortnite.com/Devices }
 using { MovementExtensions }
 
 CameraExtensions<public> := module:
-    RepositionCamera<public>(Pivot:vector3, Board:[][]space, Camera:gameplay_camera_fixed_point_device)<decides><transacts>:vector3 =
+    RepositionCamera<public>(Board:[][]space, Camera:gameplay_camera_fixed_point_device)<decides><transacts>:vector3 =
         Space := Board[0][0]
         ColumnsWidth := Board.Length * Space.Size.X
         RowLength := if (AmountOfSpaces := Board[0].Length):
@@ -11,7 +11,8 @@ CameraExtensions<public> := module:
         else:
             16.0 * Space.Size.X
         FieldOfView := 120.0
-        ViewDistance := RowLength / (2 * Tan(DegreesToRadians(FieldOfView / 2.0)))
+        ViewDistance := RowLength / (2.0 * Tan(DegreesToRadians(FieldOfView / 2.0)))
+        Pivot := Space.Object.GetTransform().Translation + Space.Size * (Space.Offset + vector3{X := -1.25, Y := -1.0, Z := 1.0}) * 0.5
         Translation := Pivot + vector3{X := ColumnsWidth / 2.0, Y := RowLength / 2.0, Z := ViewDistance}
         Camera.TeleportTo[Translation, Camera.GetTransform().Rotation]
         Translation

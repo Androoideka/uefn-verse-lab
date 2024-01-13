@@ -1,18 +1,4 @@
 CollectionExtensions<public> := module:
-    RemoveKeyFromMap<public>(Map:[key]val, ElementToRemove:key where key:subtype(comparable), val:type)<transacts>:[key]val=
-        if (not Map[ElementToRemove]):
-            return Map
-        var NewMap:[key]val = map{}
-        for (Key -> Value : Map, Key <> ElementToRemove):
-            set NewMap = ConcatenateMaps(NewMap, map{Key => Value})
-        return NewMap
-
-    RemoveValFromMap<public>(Map:[key]val, ElementToRemove:val where key:subtype(comparable), val:subtype(comparable))<transacts>:[key]val=
-        var NewMap:[key]val = map{}
-        for (Key -> Value : Map, Value <> ElementToRemove):
-            set NewMap = ConcatenateMaps(NewMap, map{Key => Value})
-        return NewMap
-
     Zip<public>(Operand1:[]input, Operand2:[]input, Operation:type{_(:input, :input)<transacts>:result} where input:type, result:type)<transacts>:[]result =
         for (Index -> Value1 : Operand1, Value2 := Operand2[Index]):
             Operation(Value1, Value2)

@@ -33,7 +33,6 @@ FroggerInitialization<public> := module:
             PlayerName := Billboard
             Player := Player
             PlacementRequest := State.PlacementRequest
-            DisplacementRequest := State.DisplacementRequest
             MoveRequest := State.MoveRequest
             RemovalRequest := State.RemovalRequest
         Frog.SetUp()

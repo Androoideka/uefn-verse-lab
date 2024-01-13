@@ -3,19 +3,6 @@ using { /Verse.org/Simulation }
 using { /Fortnite.com/Devices }
 
 ProgressExtensions<public> := module:
-    GetOrdinalNumber(Number:int)<computes>:string =
-        Extension := if (Number >= 10 and Number <= 20):
-            "th"
-        else if (Remainder := Mod[Number, 10]):
-            case(Remainder):
-                1 => "st"
-                2 => "nd"
-                3 => "rd"
-                _ => "th"
-        else:
-            "th"
-        "{Number}{Extension}"
-
     CompareScores(First:tuple(int, player), Second:tuple(int, player))<computes>:int =
         if (First(0) > Second(0)):
             1
@@ -39,12 +26,12 @@ ProgressExtensions<public> := module:
             ScoreTracker.SetScoreAward(-1)
             ScoreTracker.Activate(Player)
 
-        RegisterFinish<public>(Players:[]player):void =
+        RegisterFinish<public>(Players:[]player)<transacts>:void =
             NewPlayers := for (Player : Players, not Contains(Places, Player)?):
                 Player
             set Places = Places + NewPlayers
             
-        Complete<public>():void =
+        Complete<public>()<suspends>:void =
             Scores := for:
                 Index -> Player : Places
                 Accolade := PlacementAccolades[Index]
@@ -55,5 +42,6 @@ ProgressExtensions<public> := module:
             SortedScores := Sort(Scores, false, CompareScores)
             for (Index -> Score : SortedScores, Accolade := ScoreAccolades[Index]):
                 Accolade.Award(Score(1))
+            Sleep(5.0)
             if (First := Places[0]):
                 EndGameDevice.Activate(First)

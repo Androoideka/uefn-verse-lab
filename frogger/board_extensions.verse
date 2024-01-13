@@ -17,7 +17,6 @@ BoardExtensions<public> := module:
         GetFinishedPieces<public>:type{_(:board, :[respawnable_prop_figure]?space)<computes>:[]respawnable_prop_figure}
 
         PlacementRequest<public>:event(respawnable_prop_figure) = event(respawnable_prop_figure){}
-        DisplacementRequest<public>:event(respawnable_prop_figure) = event(respawnable_prop_figure){}
         MoveRequest<public>:event(tuple(respawnable_prop_figure, int, int)) = event(tuple(respawnable_prop_figure, int, int)){}
         RemovalRequest<public>:event(player) = event(player){}
 
@@ -50,35 +49,30 @@ BoardExtensions<public> := module:
         Run<override>()<suspends>:void =
             var Slots:[respawnable_prop_figure]?space = map{}
             loop:
-                set Slots = race:
+                MaybeNewSlots:?[respawnable_prop_figure]?space := race:
                     block:
                         NewPiece := PlacementRequest.Await()
                         if (SlotsWithPlacement := Spawn[NewPiece, Slots]):
                             ProgressReporter.RegisterDeath(NewPiece.Player)
                             NewPiece.Show()
-                            SlotsWithPlacement
+                            option{SlotsWithPlacement}
                         else:
-                            Slots
-                    block:
-                        Piece := DisplacementRequest.Await()
-                        if (SlotsWithDisplacement := Reset[Piece, Slots]):
-                            ProgressReporter.RegisterDeath(Piece.Player)
-                            SlotsWithDisplacement
-                        else:
-                            Slots
+                            false
                     block:
                         Result := MoveRequest.Await()
                         Piece := Result(0)
                         Offset := (Result(1), Result(2))
-                        if (SlotsWithMove := Move[Piece, Offset, Slots], Space :=  SlotsWithMove[Piece]?):
+                        if (SlotsWithMove := Move[Piece, Offset, Slots], Space := SlotsWithMove[Piece]?):
                             spawn{Piece.Move(Space.GetSurface())}
                             ProgressReporter.RegisterJump(Piece.Player)
-                            SlotsWithMove
+                            option{SlotsWithMove}
                         else:
-                            Slots
+                            false
                     block:
                         Player := RemovalRequest.Await()
-                        Leave(Player, Slots)
+                        option{Leave(Player, Slots)}
+                if (NewSlots := MaybeNewSlots?):
+                    set Slots = NewSlots
                 Pieces := GetFinishedPieces(Board, Slots)
                 Players := for (Piece : Pieces):
                     Piece.Player

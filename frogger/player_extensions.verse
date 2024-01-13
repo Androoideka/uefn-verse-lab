@@ -47,6 +47,7 @@ PlayerExtensions<public> := module:
             PlayerName.ShowText()
 
         Move<override>(NewTranslation:vector3)<suspends>:void =
+            set IsMoving = true
             sync:
                 Prop.MoveToSurface(NewTranslation, 0.4)
                 block:
@@ -56,13 +57,11 @@ PlayerExtensions<public> := module:
 
     respawnable_prop_figure<public> := class(prop_figure, monitorable):
         PlacementRequest<public>:event(respawnable_prop_figure)
-        DisplacementRequest<public>:event(respawnable_prop_figure)
         MoveRequest<public>:event(tuple(respawnable_prop_figure, int, int))
         RemovalRequest<public>:event(player)
 
         RequestMove<override>(Position:tuple(int, int)):void =
             if (not IsMoving?):
-                set IsMoving = true
                 MoveRequest.Signal((Self, Position(0), Position(1)))
 
         Update<override>():void =

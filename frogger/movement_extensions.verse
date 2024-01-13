@@ -72,9 +72,6 @@ MovementExtensions<public> := module:
         GetSurface<public>(?DirectionVector:vector2=vector2{})<transacts>:vector3 =
             Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{Z := 1.0}) + GetBoundedDirectionVector(DirectionVector)
 
-        GetBottom<public>(?DirectionVector:vector2=vector2{})<transacts>:vector3 =
-            Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{Z := -1.0}) + GetBoundedDirectionVector(DirectionVector)
-
         ToSurface<public>(Surface:vector3)<computes>:vector3 =
             Surface + Size * (Offset + vector3{Z := -0.92}) * 0.5
 
