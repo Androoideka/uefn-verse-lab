@@ -1,6 +1,7 @@
 using { CollectionExtensions }
 using { MovementExtensions }
 using { SimulationExtensions }
+using { ProgressExtensions }
 using { PlayerExtensions }
 using { /Verse.org/Simulation }
 
@@ -9,10 +10,11 @@ BoardExtensions<public> := module:
 
     state<public> := class(tasker):
         Board<public>:board
+        ProgressReporter<public>:progress_reporter
 
         GetSpawn<public>:type{_(:respawnable_prop_figure, :board, :[respawnable_prop_figure]?space)<decides><transacts>:space}
         UpdateForMove<public>:type{_(:respawnable_prop_figure, :space, :[respawnable_prop_figure]?space)<decides><transacts>:[respawnable_prop_figure]?space}
-        IsComplete<public>:type{_(:board, :[respawnable_prop_figure]?space)<decides><transacts>:void}
+        GetFinishedPieces<public>:type{_(:board, :[respawnable_prop_figure]?space)<computes>:[]respawnable_prop_figure}
 
         PlacementRequest<public>:event(respawnable_prop_figure) = event(respawnable_prop_figure){}
         DisplacementRequest<public>:event(respawnable_prop_figure) = event(respawnable_prop_figure){}
@@ -52,12 +54,15 @@ BoardExtensions<public> := module:
                     block:
                         NewPiece := PlacementRequest.Await()
                         if (SlotsWithPlacement := Spawn[NewPiece, Slots]):
+                            ProgressReporter.RegisterDeath(NewPiece.Player)
+                            NewPiece.Show()
                             SlotsWithPlacement
                         else:
                             Slots
                     block:
                         Piece := DisplacementRequest.Await()
                         if (SlotsWithDisplacement := Reset[Piece, Slots]):
+                            ProgressReporter.RegisterDeath(Piece.Player)
                             SlotsWithDisplacement
                         else:
                             Slots
@@ -67,11 +72,17 @@ BoardExtensions<public> := module:
                         Offset := (Result(1), Result(2))
                         if (SlotsWithMove := Move[Piece, Offset, Slots], Space :=  SlotsWithMove[Piece]?):
                             spawn{Piece.Move(Space.GetSurface())}
+                            ProgressReporter.RegisterJump(Piece.Player)
                             SlotsWithMove
                         else:
                             Slots
                     block:
                         Player := RemovalRequest.Await()
                         Leave(Player, Slots)
-                if (IsComplete[Board, Slots]):
+                Pieces := GetFinishedPieces(Board, Slots)
+                Players := for (Piece : Pieces):
+                    Piece.Player
+                ProgressReporter.RegisterFinish(Players)
+                if (Pieces.Length = Slots.Length):
+                    ProgressReporter.Complete()
                     break

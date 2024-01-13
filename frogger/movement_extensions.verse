@@ -4,31 +4,92 @@ using { /UnrealEngine.com/Temporary/SpatialMath }
 MovementExtensions<public> := module:
     axis<public> := enum{MX, PX, MY, PY}
 
-    CalculateAngle<public>(Vector:vector2, Axis:axis)<varies>:float =
-        Val := case(Axis):
-            axis.PX => Vector.Y / Vector.X
-            axis.PY => Vector.X / Vector.Y
-            axis.MX => Vector.Y / -Vector.X
-            axis.MY => -Vector.Y / Vector.X
-        ArcTan(Val)
+    (Vector:vector3).ToVector2<public>()<computes>:vector2 =
+        vector2{X := Vector.X, Y := Vector.Y}
+
+    (Vector:vector2).ToVector3<public>()<computes>:vector3 =
+        vector3{X := Vector.X, Y := Vector.Y}
+
+    (Object:creative_object).TeleportTo<public>(Translation:vector3, Facing:axis, DirectionVector:vector2)<decides><transacts>:void =
+        Angle := CalculateAngle(DirectionVector, Facing)
+        Rotation := IdentityRotation().ApplyWorldRotationZ(Angle)
+        Object.TeleportTo[Translation, Rotation]
+
+    CalculateAngle(Vector:vector2, Axis:axis)<varies>:float =
+        #TODO: Check formulas for MX and MY better
+        Arguments := case(Axis):
+            axis.PX => (Vector.Y, Vector.X)
+            axis.PY => (-Vector.X, Vector.Y)
+            axis.MX => (-Vector.Y, -Vector.X)
+            axis.MY => (Vector.X, -Vector.Y)
+        ArcTan(Arguments)
+
+    GetBoundedDirectionVector(DirectionVector:vector2, RectWidth:float, RectHeight:float)<computes>:vector2 =
+        if (DirectionVector.X = 0, DirectionVector.Y = 0):
+            return DirectionVector
+        XFactor := if (Value := RectWidth / Abs(DirectionVector.X), Value <> 1.0/0.0):
+            Value
+        else:
+            0.0
+        YFactor := if (Value := RectHeight / Abs(DirectionVector.Y), Value <> 1.0/0.0):
+            Value
+        else:
+            0.0
+        Factor := Max(XFactor, YFactor)
+        DirectionVector * Factor
 
     asset<public> := class<unique>:
         Offset<public>:vector3
         Size<public>:vector3
         Facing<public>:axis
         PropAsset<public>:creative_prop_asset
+        Scale<public>:vector3 = vector3{X := 1.0, Y := 1.0, Z := 1.0}
+
+        ToSurface<public>(Surface:vector3)<computes>:vector3 =
+            Surface + Size * Scale * (Offset + vector3{Z := -0.92}) * 0.5
+
+        SpawnOnSurface<public>(Surface:vector3)<decides><transacts>:dimensional =
+            Transform := transform{Translation := ToSurface(Surface), Rotation := IdentityRotation(), Scale := Scale}
+            Result := SpawnProp(PropAsset, Transform)
+            dimensional:
+                Offset := Offset
+                Size := Size * Scale
+                Facing := Facing
+                Object := Result(0)?
 
     dimensional<public> := class<unique>:
-        Offset<public>:vector3
-        Size<public>:vector3
-        Facing<public>:axis
-        Object<public>:creative_object
+        Offset<public>:vector3 = vector3{}
+        Size<public>:vector3 = vector3{}
+        Facing<public>:axis = axis.PX
+        Object<public>:creative_prop = creative_prop{}
+
+        GetBoundedDirectionVector<public>(DirectionVector:vector2)<computes>:vector3 =
+            GetBoundedDirectionVector(-DirectionVector, Size.X / 2.0, Size.Y / 2.0).ToVector3()
 
         GetCentroid<public>()<transacts>:vector3 =
-            Object.GetTransform().Translation + Size * Offset * 0.5
+            Object.GetTransform().Translation + 0.5 * Size * Offset
 
-        GetSurface<public>()<transacts>:vector3 =
-            Object.GetTransform().Translation + Size * Offset * vector3{X := 0.5, Y := 0.5, Z := 0.0}
+        GetSurface<public>(?DirectionVector:vector2=vector2{})<transacts>:vector3 =
+            Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{Z := 1.0}) + GetBoundedDirectionVector(DirectionVector)
+
+        GetBottom<public>(?DirectionVector:vector2=vector2{})<transacts>:vector3 =
+            Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{Z := -1.0}) + GetBoundedDirectionVector(DirectionVector)
+
+        ToSurface<public>(Surface:vector3)<computes>:vector3 =
+            Surface + Size * (Offset + vector3{Z := -0.92}) * 0.5
+
+        TeleportToSurface<public>(Surface:vector3, DirectionVector:vector2)<decides><transacts>:void =
+            Object.IsValid[]
+            Translation := ToSurface(Surface)
+            Object.TeleportTo[Translation, Facing, DirectionVector]
+
+        MoveToSurface<public>(Surface:vector3, Time:float)<suspends>:void =
+            if (Object.IsValid[]):
+                Translation := ToSurface(Surface)
+                DirectionVector := (Translation - Object.GetTransform().Translation).ToVector2()
+                Angle := CalculateAngle(DirectionVector, Facing)
+                Rotation := IdentityRotation().ApplyWorldRotationZ(Angle)
+                Object.MoveTo(Translation, Rotation, Time)
 
     space<public> := class(dimensional):
         Position<public>:tuple(int, int)

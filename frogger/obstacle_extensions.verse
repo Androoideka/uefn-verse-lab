@@ -1,5 +1,7 @@
 using { /Verse.org }
 using { /Verse.org/Simulation }
+using { /Verse.org/Random }
+using { CollectionExtensions }
 using { MovementExtensions }
 using { SimulationExtensions }
 using { /UnrealEngine.com/Temporary/SpatialMath }
@@ -8,61 +10,56 @@ using { /Fortnite.com/Devices }
 ObstacleExtensions<public> := module:
     PropMoverAxis:axis = axis.PX
 
-    parallel_obstacle<public> := class(tasker):
+    linear_obstacle<public> := class(tasker):
         StartSpace<public>:space
         EndSpace<public>:space
         Time<public>:float
-        Obstacles<public>:[]tuple(prop_mover_device, dimensional, int)
+        Phases<public>:[]int
+        Obstacles<public>:[]tuple(dimensional, prop_mover_device)
 
         Run<override>()<suspends>:void =
-            DirectionalVector := EndSpace.GetCentroid() - StartSpace.GetCentroid()
-            Directional2DVector := vector2{X := DirectionalVector.X, Y := DirectionalVector.Y}
-            PropMoverRotation := IdentityRotation().ApplyLocalRotationZ(CalculateAngle(Directional2DVector, PropMoverAxis))
-            InDistance := Distance(EndSpace.GetCentroid(), StartSpace.GetCentroid()) + StartSpace.Size.X
+            DirectionVector := (EndSpace.GetCentroid() - StartSpace.GetCentroid()).ToVector2()
+            InDistance := (DirectionVector.Length() + StartSpace.GetBoundedDirectionVector(DirectionVector).Length() + EndSpace.GetBoundedDirectionVector(-DirectionVector).Length()) / 100.0
             Speed := InDistance / Time
             for:
-                Obstacle : Obstacles
-                PropMover := Obstacle(0)
-                Prop := Obstacle(1)
-                Phase := Obstacle(2)
-                PropRotation := Prop.Object.GetTransform().Rotation.ApplyLocalRotationZ(CalculateAngle(Directional2DVector, Prop.Facing))
-                PropMover.TeleportTo[StartSpace.GetSurface(), PropMoverRotation]
-                Prop.Object.TeleportTo[StartSpace.GetSurface() + Prop.Size * (Prop.Offset - vector3{X := 0.0, Y := 0.0, Z := 1.0}), PropRotation]
+                Index -> Obstacle : Obstacles
+                Phase := Phases[Index]
+                Prop := Obstacle(0)
+                PropMover := Obstacle(1)
             do:
-                Sleep(Prop.Size.X * Phase / Speed)
-                PropMover.SetTargetDistance(InDistance)
-                PropMover.SetTargetSpeed(Speed)
-                Print("{InDistance}")
-                PropMover.Enable()
+                Sleep(Prop.GetBoundedDirectionVector(DirectionVector).Length() * Phase * 0.03 / Speed)
+                if:
+                    Prop.TeleportToSurface[StartSpace.GetSurface(?DirectionVector := DirectionVector), DirectionVector]
+                    PropMover.TeleportTo[Prop.GetCentroid(), PropMoverAxis, DirectionVector]
+                then:
+                    PropMover.SetTargetDistance(InDistance)
+                    PropMover.SetTargetSpeed(Speed)
+                    PropMover.Enable()
 
-    CreateObstacles<public>(Board:[][]space, CarMovers:[]prop_mover_device, Cars:[]dimensional, Phases:[]int)<transacts>:[]parallel_obstacle =
-        ObstacleBatches := for:
-            Index := 1..Board.Length - 2
-            Length := Floor(Cars.Length / (Board.Length - 2 - 2))
-            Leftover := Mod[Cars.Length, (Board.Length - 2 - 2)]
-            Overflow := if (Leftover < Index):
-                1
-            else:
-                0
-            PreviousOverflows := Min(Index, Leftover)
-        do:
-            StartIndex := (Index * Length + PreviousOverflows)
-            EndIndex := StartIndex + Length + Overflow
-            for:
-                ObstacleIndex := StartIndex..EndIndex
-                CarMover := CarMovers[ObstacleIndex]
-                Car := Cars[ObstacleIndex]
-                Phase := Phases[ObstacleIndex]
-            do:
-                (CarMover, Car, Phase)
+    Proximity(Dimensional:dimensional, PropMover:prop_mover_device)<transacts>:float =
+        Distance(Dimensional.Object.GetTransform().Translation, PropMover.GetTransform().Translation)
+
+    CreateObstacles<public>(Board:[][]space, Phases:[][]int, TaggedObjects:[]creative_object_interface, Offset:vector3, Size:vector3)<decides><transacts>:[]linear_obstacle =
+        TaggedProps := for (Object : TaggedObjects, Prop := creative_prop[Object]):
+            dimensional:
+                Offset := Offset
+                Size := Size
+                Facing := axis.PY
+                Object := Prop
+        TaggedPropMovers := for (Object : TaggedObjects, PropMover := prop_mover_device[Object]):
+            PropMover
+        Obstacles := Reshape(Phases, Pair[TaggedProps, TaggedPropMovers, Proximity])
         for:
-            Index -> ObstacleBatch : ObstacleBatches
+            Index -> PhaseBatch : Phases
+            ObstacleBatch := Obstacles[Index]
             Row := Board[Index + 1]
-            StartSpace := Row[0]
-            EndSpace := Row[Row.Length - 1]
+            Range := Shuffle(array{Row[0], Row[Row.Length - 1]})
+            StartSpace := Range[0]
+            EndSpace := Range[1]
         do:
-            parallel_obstacle:
+            linear_obstacle:
                 StartSpace := StartSpace
                 EndSpace := EndSpace
                 Time := Random.GetRandomFloat(5.0, 15.0)
+                Phases := PhaseBatch
                 Obstacles := ObstacleBatch

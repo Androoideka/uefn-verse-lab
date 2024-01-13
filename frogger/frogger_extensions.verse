@@ -19,7 +19,6 @@ FroggerExtensions<public> := module:
         set NewSlots[Frog] = option{NewSpace}
         NewSlots
 
-    IsFroggerComplete<public>(Board:[][]space, Slots:[respawnable_prop_figure]?space)<decides><transacts>:void =
-        OutOfCompletionArea := for (Key -> Value : Slots, not Value? or Value?.Position(0) <> Board.Length - 1):
-            false
-        OutOfCompletionArea.Length = 0
+    GetFroggerFinishedPlayers<public>(Board:[][]space, Slots:[respawnable_prop_figure]?space)<computes>:[]respawnable_prop_figure =
+        InCompletionArea := for (Key -> Value : Slots, Space := Value?, Space.Position(0) = Board.Length - 1):
+            Key
