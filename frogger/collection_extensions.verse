@@ -1,3 +1,5 @@
+using { /Verse.org/Random }
+
 CollectionExtensions<public> := module:
     Zip<public>(Operand1:[]input, Operand2:[]input, Operation:type{_(:input, :input)<transacts>:result} where input:type, result:type)<transacts>:[]result =
         for (Index -> Value1 : Operand1, Value2 := Operand2[Index]):
@@ -8,6 +10,14 @@ CollectionExtensions<public> := module:
 
     Subtract<public>(Value1:int, Value2:int)<computes>:int =
         Value1 - Value2
+
+    Compare<public>(Value1:int, Value2:int)<computes>:int =
+        if (Value1 > Value2):
+            1
+        else if (Value1 = Value2):
+            0
+        else:
+            -1
 
     Pair<public>(Array1:[]t1, Array2:[]t2, ProximityFunction:type{_(:t1, :t2)<transacts>:float} where t1:type, t2:type)<decides><transacts>:[]tuple(t1, t2) =
         for (Element1 : Array1):
@@ -46,3 +56,16 @@ CollectionExtensions<public> := module:
             if (ArrayItem = Item):
                 return true
         false
+
+    GetRandomNumbersFrom1<public>(MaxValue:int, Length:int)<transacts>:[]int =
+        Range := for (N := 1..MaxValue):
+            N
+        ShuffledRange := Shuffle(Range)
+        for (Index -> Element : ShuffledRange, Index < Length):
+            Element
+
+    #https://stackoverflow.com/questions/3589214/generate-random-numbers-summing-to-a-predefined-value
+    CombinationSumTo<public>(NumbersInCombination:int, Sum:int)<transacts>:[]int =
+        Dividers := Sort(GetRandomNumbersFrom1(Sum, NumbersInCombination - 1), true, Compare)
+        for (Index -> A : Dividers + array{Sum}, B := (array{0} + Dividers)[Index]):
+            A - B

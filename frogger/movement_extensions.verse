@@ -46,7 +46,7 @@ MovementExtensions<public> := module:
         Scale<public>:vector3 = vector3{X := 1.0, Y := 1.0, Z := 1.0}
 
         ToSurface<public>(Surface:vector3)<computes>:vector3 =
-            Surface + Size * Scale * (Offset + vector3{Z := -0.92}) * 0.5
+            Surface + Size * Scale * (Offset + vector3{X := 0.0, Y:= 0.0, Z := -0.92}) * 0.5
 
         SpawnOnSurface<public>(Surface:vector3)<decides><transacts>:dimensional =
             Transform := transform{Translation := ToSurface(Surface), Rotation := IdentityRotation(), Scale := Scale}
@@ -70,10 +70,10 @@ MovementExtensions<public> := module:
             Object.GetTransform().Translation + 0.5 * Size * Offset
 
         GetSurface<public>(?DirectionVector:vector2=vector2{})<transacts>:vector3 =
-            Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{Z := 1.0}) + GetBoundedDirectionVector(DirectionVector)
+            Object.GetTransform().Translation + 0.5 * Size * (Offset + vector3{X := 0.0, Y:= 0.0, Z := 1.0}) + GetBoundedDirectionVector(DirectionVector)
 
         ToSurface<public>(Surface:vector3)<computes>:vector3 =
-            Surface + Size * (Offset + vector3{Z := -0.92}) * 0.5
+            Surface + Size * (Offset + vector3{X := 0.0, Y := 0.0, Z := -0.92}) * 0.5
 
         TeleportToSurface<public>(Surface:vector3, DirectionVector:vector2)<decides><transacts>:void =
             Object.IsValid[]
@@ -87,6 +87,10 @@ MovementExtensions<public> := module:
                 Angle := CalculateAngle(DirectionVector, Facing)
                 Rotation := IdentityRotation().ApplyWorldRotationZ(Angle)
                 Object.MoveTo(Translation, Rotation, Time)
+
+    EndToEndDistance<public>(StartProp:dimensional, EndProp:dimensional)<transacts>:float =
+        DirectionVector := (EndProp.GetCentroid() - StartProp.GetCentroid()).ToVector2()
+        DirectionVector.Length() + StartProp.GetBoundedDirectionVector(DirectionVector).Length() + EndProp.GetBoundedDirectionVector(-DirectionVector).Length()
 
     space<public> := class(dimensional):
         Position<public>:tuple(int, int)

@@ -11,10 +11,10 @@ FroggerInitialization<public> := module:
     AspectRatio:tuple(int, int) = (16, 9)
 
     CreateBoard(Pivot:vector3, Lanes:int, Asset:asset)<transacts>:[][]space =
-        for (X := 0..Lanes - 1):
+        for (X := 0..Lanes - 1, Width := Floor(Lanes * AspectRatio(0) / AspectRatio(1)) - 1):
             for:
-                Y := 0..Floor(Lanes * AspectRatio(0) / AspectRatio(1)) - 1
-                Translation := Pivot + Asset.Size * vector3{X := X * 1.0, Y := Y * 1.0, Z := 1.0}
+                Y := 0..Width
+                Translation := Pivot + Asset.Size * vector3{X := (Lanes - 1 - X) * 1.0, Y := (Width - Y) * 1.0, Z := 1.0}
                 Rotation := IdentityRotation().ApplyLocalRotationZ(DegreesToRadians(90.0))
                 Result := SpawnProp(Asset.PropAsset, Translation, Rotation)
                 Prop := Result(0)?
@@ -26,11 +26,10 @@ FroggerInitialization<public> := module:
                     Facing := Asset.Facing
                     Object := Prop
 
-    CreateFrog<public>(Asset:asset, Billboard:billboard_device, CameraPos:vector3, Player:player, State:state):respawnable_prop_figure =
+    CreateFrog<public>(Asset:asset, Label:label, Player:player, State:state):respawnable_prop_figure =
         Frog := respawnable_prop_figure:
             Asset := Asset
-            CameraPos := CameraPos
-            PlayerName := Billboard
+            PlayerName := Label
             Player := Player
             PlacementRequest := State.PlacementRequest
             MoveRequest := State.MoveRequest

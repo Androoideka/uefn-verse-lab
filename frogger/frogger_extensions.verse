@@ -6,7 +6,7 @@ FroggerExtensions<public> := module:
     GetFroggerSpawn<public>(Frog:respawnable_prop_figure, Board:[][]space, Slots:[respawnable_prop_figure]?space)<decides><transacts>:space =
         AvailablePositions := for:
             Index -> Space : Board[0]
-            not Slots[Space]
+            not Slots[Space]?
         do:
             Space
         AvailablePositions[0]

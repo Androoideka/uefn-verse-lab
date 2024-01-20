@@ -4,15 +4,11 @@ using { MovementExtensions }
 
 CameraExtensions<public> := module:
     RepositionCamera<public>(Board:[][]space, Camera:gameplay_camera_fixed_point_device)<decides><transacts>:vector3 =
-        Space := Board[0][0]
-        ColumnsWidth := Board.Length * Space.Size.X
-        RowLength := if (AmountOfSpaces := Board[0].Length):
-            AmountOfSpaces * Space.Size.X
-        else:
-            16.0 * Space.Size.X
-        FieldOfView := 120.0
-        ViewDistance := RowLength / (2.0 * Tan(DegreesToRadians(FieldOfView / 2.0)))
-        Pivot := Space.Object.GetTransform().Translation + Space.Size * (Space.Offset + vector3{X := -1.25, Y := -1.0, Z := 1.0}) * 0.5
-        Translation := Pivot + vector3{X := ColumnsWidth / 2.0, Y := RowLength / 2.0, Z := ViewDistance}
-        Camera.TeleportTo[Translation, Camera.GetTransform().Rotation]
-        Translation
+        BottomLeftSpace := Board[0][0]
+        BottomRightSpace := Board[0][Board[0].Length - 1]
+        TopRightSpace := Board[Board.Length - 1][Board[0].Length - 1]
+        RowLength := EndToEndDistance(BottomLeftSpace, BottomRightSpace)
+        FieldOfView := 90.0
+        ViewDistance := BottomLeftSpace.GetCentroid().Z + RowLength / (2.0 * Tan(DegreesToRadians(FieldOfView / 2.0)))
+        Center := Lerp(TopRightSpace.GetSurface(), BottomLeftSpace.GetSurface(), 0.5)
+        vector3{X := Center.X + 192.0, Y := Center.Y, Z := ViewDistance}

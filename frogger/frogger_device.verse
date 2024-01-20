@@ -81,24 +81,24 @@ frogger_device := class(creative_device):
 
     var MaybeController:?key_controller = false
 
-    var Billboards:[]billboard_device = array{}
+    var Labels:[]label = array{}
 
     OnPlayerSpawn(Agent:agent):void =
         if:
             Player := player[Agent]
             Controller := MaybeController?
             State := MaybeState?
-            Result := Billboards.Pop[]
-            Billboard := Result(1)
+            Result := Labels.Pop[]
+            Label := Result(1)
         then:
-            set Billboards = Result(0)
+            set Labels = Result(0)
             FrogAsset := asset:
                 Offset := FrogOffset
                 Size := FrogSize
                 Scale := vector3{X := 3.5, Y := 3.5, Z := 3.5}
                 Facing := axis.PY
                 PropAsset := FrogPropAsset
-            Frog := CreateFrog(FrogAsset, Billboard, Camera.GetTransform().Translation, Player, State)
+            Frog := CreateFrog(FrogAsset, Label, Player, State)
             Controller.Join(Frog)
             Ticker.AddMonitorable(Frog)
 
@@ -117,23 +117,17 @@ frogger_device := class(creative_device):
         set MaybeState = option{State}
         Controller := key_controller{Buttons := MoveButtons, SignalReceiver := SignalReceiver}
         set MaybeController = option{Controller}
-        Phases := array:
-            array{0, 1, 3}
-            array{0, 1}
-            array{0, 2}
-            array{1, 2}
-            array{0, 1}
-            array{1, 2}
-            array{0, 2}
-        set Billboards = for (Object : GetCreativeObjectsWithTag(playertag{}), Billboard := billboard_device[Object]):
-            Billboard
-        for (Obstacle : CreateObstacles[State.Board, Phases, GetCreativeObjectsWithTag(cartag{}), CarOffset, CarSize]):
+        if:
+            CameraPosition := RepositionCamera[State.Board, Camera]
+            Camera.TeleportTo[CameraPosition, Camera.GetTransform().Rotation]
+        then {}
+        set Labels = for (Object : GetCreativeObjectsWithTag(playertag{}), Billboard := billboard_device[Object]):
+            label:
+                Display := Billboard
+                CameraTransform := Camera.GetTransform()
+        for (Obstacle : CreateObstacles[State.Board, GetCreativeObjectsWithTag(cartag{}), CarOffset, CarSize]):
             spawn{Obstacle.Run()}
         spawn{Ticker.Run()}
         spawn{State.Run()}
-        if (CameraPosition := RepositionCamera[State.Board, Camera])
-        {
-            Print("{CameraPosition.X} {CameraPosition.Y} {CameraPosition.Z}")
-        }
         for (PlayerSpawner : PlayerSpawners):
             PlayerSpawner.SpawnedEvent.Subscribe(OnPlayerSpawn)
