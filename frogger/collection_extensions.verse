@@ -1,7 +1,7 @@
 using { /Verse.org/Random }
 
 CollectionExtensions<public> := module:
-    Zip<public>(Operand1:[]input, Operand2:[]input, Operation:type{_(:input, :input)<transacts>:result} where input:type, result:type)<transacts>:[]result =
+    Zip<public>(Operand1:[]input, Operand2:[]input, Operation:type{_(:input, :input)<computes>:result} where input:type, result:type)<computes>:[]result =
         for (Index -> Value1 : Operand1, Value2 := Operand2[Index]):
             Operation(Value1, Value2)
 

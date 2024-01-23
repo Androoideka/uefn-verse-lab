@@ -6,8 +6,6 @@ using { MovementExtensions }
 
 TimerExtensions<public> := module:
     ToUIMessage<public><localizes>(Text:string)<varies>:message = "{Text}"
-    
-    #ToUIMessage<public><localizes>(Number:int)<varies>:message = "{Number}"
 
     countdown_timer<public> := class(tasker):
         TimerTickPeriod<public>:float = 1.0
@@ -41,5 +39,9 @@ TimerExtensions<public> := module:
             (Minutes, Seconds)
         
         UpdateUI(Minutes:int, Seconds:int):void =
+            SecondsText := if ("{Seconds}".Length < 2):
+                "0{Seconds}"
+            else:
+                "{Seconds}"
             for (Label : Labels):
-                Label.Display.SetText(ToUIMessage("{Minutes}:{Seconds}"))
+                Label.Display.SetText(ToUIMessage("{Minutes}:{SecondsText}"))
