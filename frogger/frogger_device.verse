@@ -9,11 +9,16 @@ using { ProgressExtensions }
 using { BoardExtensions }
 using { PlayerExtensions }
 using { ObstacleExtensions }
+using { ItemExtensions }
 using { FroggerInitialization }
 using { /UnrealEngine.com/Temporary/SpatialMath }
 using { /Fortnite.com/Devices }
 
 # See https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse for how to create a verse device.
+
+buttontag := class(tag){}
+
+spawntag := class(tag){}
 
 playertag := class(tag){}
 
@@ -21,9 +26,6 @@ cartag := class(tag){}
 
 # A Verse-authored creative device that can be placed in a level
 frogger_device := class(creative_device):
-    @editable
-    PlayerSpawners:[]player_spawner_device = array{}
-
     @editable
     StreetPropAsset:creative_prop_asset = DefaultCreativePropAsset
 
@@ -55,10 +57,10 @@ frogger_device := class(creative_device):
     SignalReceiver:signal_remote_manager_device = signal_remote_manager_device{}
 
     @editable
-    MoveButtons:[]button_device = array{}
+    SignalGranter:item_granter_device = item_granter_device{}
 
     @editable
-    PlacementAccolades:[]accolades_device = array{}
+    SignalChecker:conditional_button_device = conditional_button_device{}
 
     @editable
     ScoreAccolades:[]accolades_device = array{}
@@ -68,6 +70,9 @@ frogger_device := class(creative_device):
 
     @editable
     Pivot:vector3 = vector3{}
+
+    @editable
+    TimerDisplay:billboard_device = billboard_device{}
 
     @editable
     EndGameDevice:end_game_device = end_game_device{}
@@ -101,6 +106,11 @@ frogger_device := class(creative_device):
             Frog := CreateFrog(FrogAsset, Label, Player, State)
             Controller.Join(Frog)
             Ticker.AddMonitorable(Frog)
+            Equipper := equipper:
+                Granter := SignalGranter
+                Checker := SignalChecker
+                Player := Player
+            Ticker.AddMonitorable(Equipper)
 
     OnBegin<override>()<suspends>:void =
         StreetAsset := asset:
@@ -109,25 +119,31 @@ frogger_device := class(creative_device):
             Facing := axis.PY
             PropAsset := StreetPropAsset
         ProgressReporter := progress_reporter:
-            PlacementAccolades := PlacementAccolades
             ScoreAccolades := ScoreAccolades
             ScoreTracker := ScoreTracker
             EndGameDevice := EndGameDevice
         State := CreateFroggerState(Pivot, Lanes, StreetAsset, ProgressReporter)
         set MaybeState = option{State}
+        MoveButtons := for (Object : GetCreativeObjectsWithTag(buttontag{}), Button := button_device[Object]):
+            Button
         Controller := key_controller{Buttons := MoveButtons, SignalReceiver := SignalReceiver}
         set MaybeController = option{Controller}
         if:
             CameraPosition := RepositionCamera[State.Board, Camera]
             Camera.TeleportTo[CameraPosition, Camera.GetTransform().Rotation]
+            Label := label:
+                Display := TimerDisplay
+                CameraTransform := Camera.GetTransform()
+            State.Timer.Configure[Label, State.Board]
         then {}
         set Labels = for (Object : GetCreativeObjectsWithTag(playertag{}), Billboard := billboard_device[Object]):
             label:
                 Display := Billboard
                 CameraTransform := Camera.GetTransform()
-        for (Obstacle : CreateObstacles[State.Board, GetCreativeObjectsWithTag(cartag{}), CarOffset, CarSize]):
+                DistanceFromCamera := 1024.0
+        for (Index -> Obstacle : CreateObstacles[State.Board, GetCreativeObjectsWithTag(cartag{}), CarOffset, CarSize]):
             spawn{Obstacle.Run()}
         spawn{Ticker.Run()}
         spawn{State.Run()}
-        for (PlayerSpawner : PlayerSpawners):
-            PlayerSpawner.SpawnedEvent.Subscribe(OnPlayerSpawn)
+        for (Object : GetCreativeObjectsWithTag(spawntag{}), Spawner := player_spawner_device[Object]):
+            Spawner.SpawnedEvent.Subscribe(OnPlayerSpawn)

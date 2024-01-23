@@ -21,20 +21,24 @@ ObstacleExtensions<public> := module:
             DirectionVector := (EndSpace.GetCentroid() - StartSpace.GetCentroid()).ToVector2()
             InDistance := EndToEndDistance(StartSpace, EndSpace)
             Speed := InDistance / Time
+            MetreDistance := InDistance / 100.0
+            MetreSpeed := Speed / 100.0
             for:
                 Index -> Obstacle : Obstacles
                 Phase := Phases[Index]
+            do:
                 Prop := Obstacle(0)
                 PropMover := Obstacle(1)
-            do:
-                Sleep(Prop.GetBoundedDirectionVector(DirectionVector).Length() * Phase * 3 / Speed)
+                WaitTime := Prop.GetBoundedDirectionVector(DirectionVector).Length() * Phase * 4.0 / Speed
+                Sleep(WaitTime)
                 if:
                     Prop.TeleportToSurface[StartSpace.GetSurface(?DirectionVector := DirectionVector), DirectionVector]
                     PropMover.TeleportTo[Prop.GetCentroid(), PropMoverAxis, DirectionVector]
                 then:
-                    PropMover.SetTargetDistance(InDistance / 100.0)
-                    PropMover.SetTargetSpeed(Speed / 100.0)
                     PropMover.Enable()
+                    PropMover.SetTargetDistance(MetreDistance)
+                    PropMover.SetTargetSpeed(MetreSpeed)
+                    PropMover.Begin()
 
     Proximity(Dimensional:dimensional, PropMover:prop_mover_device)<transacts>:float =
         Distance(Dimensional.Object.GetTransform().Translation, PropMover.GetTransform().Translation)
@@ -55,10 +59,10 @@ ObstacleExtensions<public> := module:
             EndSpace := Board[0][Board[0].Length - 1]
             DirectionVector := (EndSpace.GetCentroid() - StartSpace.GetCentroid()).ToVector2()
             InDistance := EndToEndDistance(StartSpace, EndSpace)
-            CarLength := TaggedProps[0].GetBoundedDirectionVector(DirectionVector).Length() * 3
+            CarLength := TaggedProps[0].GetBoundedDirectionVector(DirectionVector).Length() * 4
             MaxCars := Floor[InDistance / CarLength]
         do:
-            GetRandomNumbersFrom1(MaxCars, Amount)
+            Sort(GetRandomNumbersFrom1(MaxCars, Amount), true, Compare)
         Obstacles := Reshape(Phases, Pair[TaggedProps, TaggedPropMovers, Proximity])
         for:
             Index -> ObstacleBatch : Obstacles

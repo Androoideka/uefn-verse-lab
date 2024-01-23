@@ -12,11 +12,9 @@ ProgressExtensions<public> := module:
             -1
 
     progress_reporter<public> := class:
-        PlacementAccolades<public>:[]accolades_device
         ScoreAccolades<public>:[]accolades_device
         ScoreTracker<public>:score_manager_device
         EndGameDevice<public>:end_game_device
-        var Places:[]player = array{}
 
         RegisterJump<public>(Player:player):void =
             ScoreTracker.SetScoreAward(1)
@@ -26,15 +24,14 @@ ProgressExtensions<public> := module:
             ScoreTracker.SetScoreAward(-1)
             ScoreTracker.Activate(Player)
 
-        RegisterFinish<public>(Players:[]player)<transacts>:void =
-            NewPlayers := for (Player : Players, not Contains(Places, Player)?):
-                Player
-            set Places = Places + NewPlayers
+        RegisterFinish<public>(Player:player):void =
+            ScoreTracker.SetScoreAward(10)
+            ScoreTracker.Activate(Player)
             
-        Complete<public>()<suspends>:void =
+        Complete<public>(Players:[]player)<suspends>:void =
             Scores := for:
-                Index -> Player : Places
-                Accolade := PlacementAccolades[Index]
+                Index -> Player : Players
+                Accolade := ScoreAccolades[Index]
                 Score := ScoreTracker.GetCurrentScore(Player)
             do:
                 Accolade.Award(Player)
@@ -43,5 +40,5 @@ ProgressExtensions<public> := module:
             for (Index -> Score : SortedScores, Accolade := ScoreAccolades[Index]):
                 Accolade.Award(Score(1))
             Sleep(5.0)
-            if (First := Places[0]):
-                EndGameDevice.Activate(First)
+            if (First := SortedScores[0]):
+                EndGameDevice.Activate(First(1))

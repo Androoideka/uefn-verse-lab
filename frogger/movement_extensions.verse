@@ -95,6 +95,28 @@ MovementExtensions<public> := module:
     space<public> := class(dimensional):
         Position<public>:tuple(int, int)
 
+    label<public> := class:
+        Display<public>:billboard_device
+        CameraTransform<public>:transform
+        DistanceFromCamera<public>:float = 512.0
+
+        block:
+            Rotation := IdentityRotation().ApplyWorldRotationX(DegreesToRadians(90.0)).ApplyWorldRotationZ(DegreesToRadians(-90.0))
+            if (Display.TeleportTo[Display.GetTransform().Translation, Rotation]) {}
+
+        ToSurface(Surface:vector3)<transacts>:vector3 =
+            Offset := vector3{X := 128.0, Y := 0.0, Z := 0.0}
+            RelativeTranslation := Surface - CameraTransform.Translation
+            NameHeight := -DistanceFromCamera
+            Factor := Abs(NameHeight / RelativeTranslation.Z)
+            CameraTransform.Translation + RelativeTranslation * Factor + Offset
+
+        TeleportTo<public>(Surface:vector3)<decides><transacts>:void =
+            Display.TeleportTo[ToSurface(Surface), Display.GetTransform().Rotation]
+
+        MoveTo<public>(Surface:vector3, Time:float)<suspends>:void =
+            Display.MoveTo(ToSurface(Surface), Display.GetTransform().Rotation, Time)
+
     direction<public> := enum{Up, Down, Left, Right}
 
     (Direction:direction).GetDirectionIndex<public>()<computes>:tuple(int, int) =

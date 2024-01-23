@@ -2,7 +2,6 @@ using { BoardExtensions }
 using { MovementExtensions }
 using { PlayerExtensions }
 using { ProgressExtensions }
-using { FroggerExtensions }
 using { /Verse.org/Simulation }
 using { /Fortnite.com/Devices }
 using { /UnrealEngine.com/Temporary/SpatialMath }
@@ -34,6 +33,7 @@ FroggerInitialization<public> := module:
             PlacementRequest := State.PlacementRequest
             MoveRequest := State.MoveRequest
             RemovalRequest := State.RemovalRequest
+            MoveComplete := State.MoveComplete
         Frog.SetUp()
         Frog
 
@@ -41,6 +41,3 @@ FroggerInitialization<public> := module:
         state:
             Board := CreateBoard(Pivot, Lanes, Asset)
             ProgressReporter := ProgressReporter
-            GetSpawn := GetFroggerSpawn
-            UpdateForMove := FroggerMove
-            GetFinishedPieces := GetFroggerFinishedPlayers

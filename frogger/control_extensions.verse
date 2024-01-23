@@ -13,9 +13,9 @@ ControlExtensions<public> := module:
         Select(Player:player, Figure:figure)<decides><transacts>:void =
             set Selected[Figure.Player] = Figure
 
-        Move(Player:player, Position:tuple(int, int)):void =
+        Move(Player:player, Direction:direction):void =
             if (Figure := Selected[Player]):
-                Figure.RequestMove(Position)
+                Figure.RequestMove(Direction)
 
     key_controller<public> := class(controller):
         Buttons<public>:[]button_device
@@ -36,16 +36,16 @@ ControlExtensions<public> := module:
 
         OnInteract(Agent:agent):void =
             if (Player := player[Agent]):
-                Move(Player, direction.Up.GetDirectionIndex())
+                Move(Player, direction.Up)
 
         OnLeftSignal(Agent:agent):void =
             if (Player := player[Agent]):
-                Move(Player, direction.Left.GetDirectionIndex())
+                Move(Player, direction.Left)
 
         OnRightSignal(Agent:agent):void =
             if (Player := player[Agent]):
-                Move(Player, direction.Right.GetDirectionIndex())
+                Move(Player, direction.Right)
 
         OnCrouch(Payload:tuple(fort_character, logic)):void =
             if (Player := player[Payload(0).GetAgent[]]):
-                Move(Player, direction.Down.GetDirectionIndex())
+                Move(Player, direction.Down)

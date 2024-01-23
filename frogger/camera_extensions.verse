@@ -8,7 +8,7 @@ CameraExtensions<public> := module:
         BottomRightSpace := Board[0][Board[0].Length - 1]
         TopRightSpace := Board[Board.Length - 1][Board[0].Length - 1]
         RowLength := EndToEndDistance(BottomLeftSpace, BottomRightSpace)
-        FieldOfView := 90.0
+        FieldOfView := 120.0
         ViewDistance := BottomLeftSpace.GetCentroid().Z + RowLength / (2.0 * Tan(DegreesToRadians(FieldOfView / 2.0)))
         Center := Lerp(TopRightSpace.GetSurface(), BottomLeftSpace.GetSurface(), 0.5)
         vector3{X := Center.X + 192.0, Y := Center.Y, Z := ViewDistance}
