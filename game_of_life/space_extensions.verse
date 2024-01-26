@@ -33,7 +33,8 @@ SpaceExtensions<public> := module:
 
         Spawn<private>():void =
             Result := SpawnProp(Asset, Model.GetTransform().Translation + FromXYZ(0.0, 0.0, 50.1), IdentityRotation())
-            if (set Prop = Result(0)?) {}
+            if (SpawnedProp := Result(0)?):
+                set Prop = SpawnedProp
 
         Instantiate<public>():void =
             SetDead()

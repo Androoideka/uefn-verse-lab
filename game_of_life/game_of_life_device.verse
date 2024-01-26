@@ -42,29 +42,25 @@ game_of_life_device := class(creative_device):
         if (not Contains(Hits, Cell)?):
             set Hits = Hits + array{Cell}
 
+    ResetHits(Board:board, Tiles:[]tile):void =
+        set Hits = array{}
+        for (Tile : Tiles):
+            if (Contains(Board.LivingCells, Tile.Cell)?):
+                Tile.SetLiving()
+            else:
+                Tile.SetDead()
+
     Update(Board:board, Tiles:[]tile)<suspends>:void =
-        MaybeBoard:?board := race:
+        NextBoard := race:
             block:
                 Sleep(IterationDelay)
-                option{Board.Update(Hits)}
+                if (not PauseSwitch.GetCurrentState[]):
+                    PauseSwitch.TurnedOnEvent.Await()
+                Board.Update(Hits)
             block:
                 ResetButton.InteractedWithEvent.Await()
-                option{board{XRange := Board.XRange, YRange := Board.YRange}}
-            block:
-                if (PauseSwitch.GetCurrentState[]):
-                    PauseSwitch.TurnedOffEvent.Await()
-                false
-        NextBoard := if (NewBoard := MaybeBoard?):
-            set Hits = array{}
-            for (Tile : Tiles):
-                if (Contains(NewBoard.LivingCells, Tile.Cell)?):
-                    Tile.SetLiving()
-                else:
-                    Tile.SetDead()
-            NewBoard
-        else:
-            PauseSwitch.TurnedOnEvent.Await()
-            Board
+                board{XRange := Board.XRange, YRange := Board.YRange}
+        ResetHits(NextBoard, Tiles)
         Update(NextBoard, Tiles)
 
     GenerateTiles(XRange:tuple(int, int), YRange:tuple(int, int)):[]tile =

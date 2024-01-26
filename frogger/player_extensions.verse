@@ -29,7 +29,8 @@ PlayerExtensions<public> := module:
 
         Spawn<override>(SpawnTranslation:vector3)<decides><transacts>:dimensional =
             OldProp := Prop
-            set Prop = Asset.SpawnOnSurface[SpawnTranslation]
+            SpawnedProp := Asset.SpawnOnSurface[SpawnTranslation]
+            set Prop = SpawnedProp
             PlayerName.TeleportTo[Prop.ToSurface(SpawnTranslation)]
             OldProp
 
