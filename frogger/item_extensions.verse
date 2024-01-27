@@ -9,5 +9,5 @@ ItemExtensions<public> := module:
         Player<public>:player
 
         Update<override>():void =
-            if (Checker.IsHoldingItem[Player]):
+            if (not Checker.IsHoldingItem[Player]):
                 Granter.GrantItem(Player)
